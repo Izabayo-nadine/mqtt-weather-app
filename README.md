@@ -28,4 +28,4 @@ Follow the steps below to set up the project locally:
 Clone this repository to your local machine using the following command:
 
 ```bash
-git clone https://github.com/yourusername/mqtt-weather-app.git
+git clone https://github.com/Izabayo-nadine/mqtt-weather-app.git
