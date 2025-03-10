@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Station (MQTT + SQLite)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Global styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: #fff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h2 {
+            font-size: 2.5em;
+            color: #fff;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1000px;
+            margin: auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        canvas {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Animation for canvas updates */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .fadeIn {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            h2 {
+                font-size: 2em;
+            }
+
+            .container {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>MQTT Weather Station</h2>
+    <div class="container">
+        <canvas id="weatherChart" class="fadeIn"></canvas>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('weatherChart').getContext('2d');
+
+        const weatherChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Temperature (°C)',
+                        borderColor: 'red',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        data: [],
+                    },
+                    {
+                        label: 'Humidity (%)',
+                        borderColor: 'blue',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        data: [],
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: {
+                        title: { display: true, text: "Time" }
+                    },
+                    y: {
+                        title: { display: true, text: "Values" }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        async function fetchWeatherData() {
+            try {
+                const response = await fetch("http://localhost:3000/data");
+                const data = await response.json();
+                
+                // Filter temperature & humidity
+                let timestamps = [];
+                let temperatures = [];
+                let humidities = [];
+
+                data.forEach(entry => {
+                    timestamps.push(entry.timestamp.split(" ")[1]); // Extract time only
+                    if (entry.topic.includes("temperature")) {
+                        temperatures.push(parseFloat(entry.value));
+                    } else if (entry.topic.includes("humidity")) {
+                        humidities.push(parseFloat(entry.value));
+                    }
+                });
+
+                weatherChart.data.labels = timestamps;
+                weatherChart.data.datasets[0].data = temperatures;
+                weatherChart.data.datasets[1].data = humidities;
+                weatherChart.update();
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        // Fetch data every 30 seconds
+        setInterval(fetchWeatherData, 30000);
+        fetchWeatherData();
+    </script>
+
+</body>
+</html>
